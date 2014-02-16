@@ -109,13 +109,23 @@ public class Spreadsheet implements Serializable {
 		ListFeed feed = service.getFeed(url, ListFeed.class);
 		return feed.getEntries();
 	}
+	/**
+	 * Select all entries.
+	 * @return All entries
+	 * @throws IOException
+	 * @throws ServiceException
+	 */
+	public List<ListEntry> select () throws IOException, ServiceException {
+		URL url = worksheetEntry.getListFeedUrl();
+		ListFeed feed = service.getFeed(url, ListFeed.class);
+		return feed.getEntries();
+	}
 
 	public List<ListEntry> select (String where) throws IOException, ServiceException {
 		ListQuery query = new ListQuery(worksheetEntry.getListFeedUrl());
 		query.setSpreadsheetQuery(where);
 		ListFeed feed = service.query(query, ListFeed.class);
-		List<ListEntry> list = feed.getEntries();
-		return list;
+		return feed.getEntries();
 	}
 
 	public void insert (Map<String, String> value) throws IOException, ServiceException {
