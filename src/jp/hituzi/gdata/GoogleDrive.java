@@ -18,7 +18,7 @@ import com.google.gdata.util.ServiceException;
 /**
  * 
  * @author Hituzi ANDO
- * @version 1.0.0
+ * @version 1.0.1
  *
  */
 public class GoogleDrive {
@@ -39,7 +39,7 @@ public class GoogleDrive {
 	}
 	/**
 	 * @param spreadsheetName
-	 * @param allowDuplication
+	 * @param allowDuplication When you specify true, a new file is created even if specified name is equal to partial name of existing files.
 	 * @return true If making a new spreadsheet is successful. Otherwise false.
 	 * @throws IOException
 	 * @throws ServiceException
@@ -54,14 +54,16 @@ public class GoogleDrive {
 			SpreadsheetQuery query = new SpreadsheetQuery(FeedURLFactory.getDefault().getSpreadsheetsFeedUrl());
 			query.setTitleQuery(spreadsheetName);
 			SpreadsheetFeed feed = spreadsheet.getService().query(query, SpreadsheetFeed.class);
-			if (feed.getEntries().size() == 0) {
-				DocumentListEntry entry = new SpreadsheetEntry();
-				entry.setTitle(new PlainTextConstruct(spreadsheetName));
-				entry = service.insert(GOOGLE_DRIVE_FEED_URL, entry);
-				return true;
+			for (com.google.gdata.data.spreadsheet.SpreadsheetEntry entry : feed.getEntries()) {
+				if (spreadsheetName.equals(entry.getTitle().getPlainText())) {
+					return false;
+				}
 			}
+			DocumentListEntry entry = new SpreadsheetEntry();
+			entry.setTitle(new PlainTextConstruct(spreadsheetName));
+			entry = service.insert(GOOGLE_DRIVE_FEED_URL, entry);
+			return true;
 		}
-		return false;
 	}
 
 	public void uploadFile (String fileName, String filePath, String mimeType) throws IOException, ServiceException {
