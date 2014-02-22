@@ -1,4 +1,6 @@
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,9 +22,14 @@ public class Main {
 	 */
 	public static void main (String[] args) throws IOException, ServiceException {
 		String appName = "jp.hituzi.gdata-Sample-1";
-		String userName = "*********@gmail.com";	// Your account name
-		String password = "*********";				// Your Password
 		String spreadsheetName = "jp_hituzi_gdata_Sampe";
+		
+		InputStreamReader isr = new InputStreamReader(System.in);
+		BufferedReader br = new BufferedReader(isr);
+		System.out.print("gmail address > ");
+		String userName = br.readLine();
+		System.out.print("password > ");
+		String password = br.readLine();
 		
 		System.out.println("Access to Google Drive...");
 		
