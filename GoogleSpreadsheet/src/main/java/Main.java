@@ -34,11 +34,12 @@ public class Main {
                 .insert(new Record(Arrays.asList("Dan", "Japan", "Fukuoka", 444)))
                 .execute();
 
-        // Select
+        // Select all
         List<Record> records = db.queryRequest("member").all().execute();
 
         Table memberTable = db.getTable("member");
 
+        System.out.println("Select all>");
         for (Record record : records) {
             System.out.printf("%s, %s, %s, %d\n",
                     record.getString(memberTable.getColumnIndex("name")),
@@ -47,10 +48,16 @@ public class Main {
                     record.getInt(memberTable.getColumnIndex("tel")));
         }
 
-        Record record1 = records.get(0);
-        record1.setValues(Arrays.asList("Akko", "Japan", "Kyoto", 999));
+        // Find
+        Record record1 = db.queryRequest("member").findByRowIndex(1).execute().get(0);
+        System.out.printf("Find>\n%s, %s, %s, %d\n",
+                record1.getString(memberTable.getColumnIndex("name")),
+                record1.getString(memberTable.getColumnIndex("address1")),
+                record1.getString(memberTable.getColumnIndex("country")),
+                record1.getInt(memberTable.getColumnIndex("tel")));
 
         // Update
+        record1.setValues(Arrays.asList("Akko", "Japan", "Kyoto", record1.getInt(memberTable.getColumnIndex("tel")) + 1));
         db.updateRequest("member").update(record1).execute();
 
         // Delete

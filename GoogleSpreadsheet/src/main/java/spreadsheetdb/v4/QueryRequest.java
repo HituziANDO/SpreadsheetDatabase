@@ -25,6 +25,18 @@ public class QueryRequest {
         return this;
     }
 
+    public QueryRequest findByRowIndex(int rowIndex) {
+        if (rowIndex < 1) {
+            throw new IndexOutOfBoundsException("First data's `rowIndex` is 1. `rowIndex` 0 is header.");
+        }
+
+        int row = rowIndex + 1;
+        range = table.getName() + "!A" + row + ":" + table.getEndColumnA1Notation() + row;
+        startRowIndex = rowIndex;
+
+        return this;
+    }
+
     public List<Record> execute() throws IOException {
         if (range == null || startRowIndex <= 0) {
             return new ArrayList<>();
