@@ -1,115 +1,63 @@
 package spreadsheetdb.v4;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 public class Table {
 
-    public static class Record {
+    public static class Grid {
 
-        private final int rowNumber;
-        private List<Object> values;
+        /**
+         * Character code (Decimal)
+         */
+        private static final int A = 65;
 
-        public Record(int rowNumber) {
-            this(rowNumber, new ArrayList<Object>());
+        /**
+         * @param a1 A column A1 notation's alphabet: A-ZZ.
+         * @return An index of given column. e.g.) "A"=0, "Z"=25, "AA"=26
+         * @throws IllegalArgumentException
+         */
+        public static int columnIndex(String a1) {
+            a1 = a1.toUpperCase(Locale.US);
+
+            if (!a1.matches("[A-Z][A-Z]|[A-Z]")) {
+                throw new IllegalArgumentException("The argument is [A-Z] or [A-Z][A-Z] only.");
+            }
+
+            char[] arr = a1.toCharArray();
+
+            if (arr.length == 2) {
+                int x = (Integer.valueOf(Integer.toString(arr[0], 10))    // Convert to Character code
+                        - A + 1) * 26;
+                int y = Integer.valueOf(Integer.toString(arr[1], 10))    // Convert to Character code
+                        - A;
+
+                return x + y;
+            } else {
+                return Integer.valueOf(Integer.toString(arr[0], 10))    // Convert to Character code
+                        - A;
+            }
         }
 
-        public Record(List<Object> values) {
-            this(0, values);
-        }
-
-        public Record(int rowNumber, List<Object> values) {
-            this.rowNumber = rowNumber;
-            this.values = values;
-        }
-
-        public int getRowNumber() {
-            return rowNumber;
-        }
-
-        public List<Object> getValues() {
-            return values;
-        }
-
-        public void setValues(List<Object> values) {
-            this.values = values;
-        }
-
-        public Object get(int columnIndex) {
-            return values.get(columnIndex);
-        }
-
-        public int getInt(int columnIndex) {
-            return Integer.parseInt(get(columnIndex).toString());
-        }
-    }
-
-    public static class BatchUpdate {
-
-        private final int sheetId;
-        private final int columnSize;
-        private final SpreadsheetHandler.BatchUpdateRequest batchRequest = new SpreadsheetHandler.BatchUpdateRequest();
-
-        public BatchUpdate(int sheetId, int columnSize) {
-            this.sheetId = sheetId;
-            this.columnSize = columnSize;
-        }
-
-        public BatchUpdate insert(Record record) {
-            batchRequest.appendSingleRowData(sheetId, record.getValues());
-
-            return this;
-        }
-
-        public BatchUpdate update(Record record) {
-            batchRequest.updateSingleRowData(sheetId,
-                    record.getRowNumber() - 1,
-                    columnSize,
-                    record.getValues());
-
-            return this;
-        }
-    }
-
-    public static class BatchDelete {
-
-        private final String tableName;
-        private final String endColumn;
-        private final SpreadsheetHandler.BatchClearRequest batchRequest = new SpreadsheetHandler.BatchClearRequest();
-
-        public BatchDelete(String tableName, String endColumn) {
-            this.tableName = tableName;
-            this.endColumn = endColumn;
-        }
-
-        public BatchDelete delete(Record record) {
-            batchRequest.clearSingleRowData(tableName, record.getRowNumber() - 1, endColumn);
-
-            return this;
+        /**
+         * @param number The number of a column, not index.
+         * @return A column A1 notation's alphabet.
+         */
+        public static String columnA1Notation(int number) {
+            return Character.toString((char) (A + number - 1));
         }
     }
 
     private final String name;
     private final List<Object> columns;
-    private final SpreadsheetHandler spreadsheetHandler;
-    private int lastRowNumber = 0;
 
-    public Table(String name, List<Object> columns, SpreadsheetHandler spreadsheetHandler) {
+    public Table(String name, List<Object> columns) {
         this.name = name;
         this.columns = columns;
-        this.spreadsheetHandler = spreadsheetHandler;
     }
 
-    public Table(String name, List<Object> columns, SpreadsheetHandler spreadsheetHandler, int lastRowNumber) {
-        this(name, columns, spreadsheetHandler);
-
-        this.lastRowNumber = lastRowNumber;
-    }
-
-    public long getLastRowNumber() {
-        return lastRowNumber;
+    public String getName() {
+        return name;
     }
 
     public List<Object> getColumns() {
@@ -120,99 +68,11 @@ public class Table {
         return columns.indexOf(column);
     }
 
-    public BatchUpdate batchUpdate() {
-        return new BatchUpdate(spreadsheetHandler.getSheetId(name), columns.size());
+    public String getColumnA1Notation(String column) {
+        return Grid.columnA1Notation(getColumnIndex(column) + 1);
     }
 
-    public BatchDelete batchDelete() {
-        return new BatchDelete(name, SheetGrid.columnString(columns.size()));
-    }
-
-    Table create() throws IOException {
-        spreadsheetHandler.createSheet(name);
-
-        List<List<Object>> headers = Collections.singletonList(columns);
-        spreadsheetHandler.updateValues(name, "A1", headers);
-
-        lastRowNumber = 1;
-
-        return this;
-    }
-
-    void drop() throws IOException {
-        spreadsheetHandler.deleteSheet(name);
-    }
-
-    public List<Record> selectAll() throws IOException {
-        ArrayList<Record> records = new ArrayList<Record>();
-        String range = "A2:" + SheetGrid.columnString(columns.size());
-        int rowNumber = 2; // skip header
-
-        for (List<Object> values : spreadsheetHandler.getValues(name, range)) {
-            // Excludes empty row.
-            if (!values.isEmpty()) {
-                records.add(new Record(rowNumber, values));
-                rowNumber++;
-            }
-        }
-
-        return records;
-    }
-
-    public Table insert(Record record) throws IOException {
-        lastRowNumber++;
-        spreadsheetHandler.appendValues(name, Collections.singletonList(record.getValues()));
-
-        return this;
-    }
-
-    public Table update(Record record) throws IOException {
-        spreadsheetHandler.updateValues(name, "A" + record.getRowNumber(), Collections.singletonList(record.getValues()));
-
-        return this;
-    }
-
-    public Table delete(Record record) throws IOException {
-        String range = "A" + record.getRowNumber() + ":" + SheetGrid.columnString(columns.size()) + record.getRowNumber();
-        spreadsheetHandler.clearValues(name, range);
-
-        ArrayList<List<Object>> values = new ArrayList<>();
-
-        for (Record r : selectAll()) {
-            values.add(r.getValues());
-        }
-
-        truncate();
-        spreadsheetHandler.updateValues(name, "A2:" + SheetGrid.columnString(columns.size()), values);
-
-        return this;
-    }
-
-    public Table truncate() throws IOException {
-        String range = "A2:" + SheetGrid.columnString(columns.size());
-        spreadsheetHandler.clearValues(name, range);
-
-        return this;
-    }
-
-    public Table execute(BatchUpdate batchUpdate) throws IOException {
-        spreadsheetHandler.execute(batchUpdate.batchRequest);
-
-        return this;
-    }
-
-    public Table execute(BatchDelete batchDelete) throws IOException {
-        spreadsheetHandler.execute(batchDelete.batchRequest);
-
-        ArrayList<List<Object>> values = new ArrayList<>();
-
-        for (Record r : selectAll()) {
-            values.add(r.getValues());
-        }
-
-        truncate();
-        spreadsheetHandler.updateValues(name, "A2:" + SheetGrid.columnString(columns.size()), values);
-
-        return this;
+    public String getEndColumnA1Notation() {
+        return Grid.columnA1Notation(columns.size());
     }
 }

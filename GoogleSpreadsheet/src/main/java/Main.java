@@ -1,3 +1,4 @@
+import spreadsheetdb.v4.Record;
 import spreadsheetdb.v4.SpreadsheetDatabase;
 import spreadsheetdb.v4.Table;
 
@@ -23,52 +24,47 @@ public class Main {
         // TODO: Migration
 
         // Create table if it not exists
-        Table memberTable = db.createTable("member", Arrays.asList("name", "country", "address1", "tel"))
-                .getTable("member");
+        db.createTableRequest("member", Arrays.asList("name", "country", "address1", "tel")).execute();
 
         // Insert
-        Table.BatchUpdate batchInsert = memberTable.batchUpdate()
-                .insert(new Table.Record(Arrays.asList("Aiko", "Japan", "Tokyo", 111)))
-                .insert(new Table.Record(Arrays.asList("Bob", "USA", "New York", 222)))
-                .insert(new Table.Record(Arrays.asList("Chris", "USA", "LA", 333)))
-                .insert(new Table.Record(Arrays.asList("Dan", "Japan", "Fukuoka", 444)));
-        memberTable.execute(batchInsert);
+        db.updateRequest("member")
+                .insert(new Record(Arrays.asList("Aiko", "Japan", "Tokyo", 111)))
+                .insert(new Record(Arrays.asList("Bob", "USA", "New York", 222)))
+                .insert(new Record(Arrays.asList("Chris", "USA", "LA", 333)))
+                .insert(new Record(Arrays.asList("Dan", "Japan", "Fukuoka", 444)))
+                .execute();
 
         // Select
-        List<Table.Record> records = memberTable.selectAll();
+        List<Record> records = db.queryRequest("member").all().execute();
 
-        for (Table.Record record : records) {
+        Table memberTable = db.getTable("member");
+
+        for (Record record : records) {
             System.out.printf("%s, %s, %s, %d\n",
-                    record.get(memberTable.getColumnIndex("name")),
-                    record.get(memberTable.getColumnIndex("address1")),
-                    record.get(memberTable.getColumnIndex("country")),
+                    record.getString(memberTable.getColumnIndex("name")),
+                    record.getString(memberTable.getColumnIndex("address1")),
+                    record.getString(memberTable.getColumnIndex("country")),
                     record.getInt(memberTable.getColumnIndex("tel")));
         }
 
-        Table.Record record1 = records.get(0);
+        Record record1 = records.get(0);
         record1.setValues(Arrays.asList("Akko", "Japan", "Kyoto", 999));
 
         // Update
-        Table.BatchUpdate batchUpdate = memberTable.batchUpdate().update(record1);
-        memberTable.execute(batchUpdate);
+        db.updateRequest("member").update(record1).execute();
 
         // Delete
-        Table.BatchDelete batchDelete = memberTable.batchDelete().delete(records.get(2));
-        memberTable.execute(batchDelete);
-
-        for (Table.Record record : records) {
-            System.out.printf("%s, %s, %s, %d\n",
-                    record.get(memberTable.getColumnIndex("name")),
-                    record.get(memberTable.getColumnIndex("address1")),
-                    record.get(memberTable.getColumnIndex("country")),
-                    record.getInt(memberTable.getColumnIndex("tel")));
-        }
+        db.deleteRequest("member")
+                .delete(records.get(1))
+                .delete(records.get(3))
+                .execute();
 
         // Truncate
-//        memberTable.truncate();
+//        db.truncateRequest("member").execute();
+
+        db.createTableRequest("class", Arrays.asList("name", "number")).execute();
 
         // Drop table
-        db.createTable("class", Arrays.asList("name", "number"));
-        db.dropTable("class");
+        db.dropTableRequest("class").execute();
     }
 }

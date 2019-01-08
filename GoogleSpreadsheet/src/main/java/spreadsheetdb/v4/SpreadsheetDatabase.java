@@ -14,7 +14,7 @@ public class SpreadsheetDatabase {
     private static final Object LOCK_OBJECT = new Object();
 
     private static String applicationName;
-    private static HashMap<String, Table> tables = new HashMap<String, Table>();
+    private static HashMap<String, Table> tables = new HashMap<>();
 
     private final SpreadsheetHandler spreadsheetHandler;
     private final Table metaTable;
@@ -54,7 +54,9 @@ public class SpreadsheetDatabase {
                                 InputStream credentialsFile) throws GeneralSecurityException, IOException {
 
         spreadsheetHandler = new SpreadsheetHandler(spreadsheetId, applicationName, databaseName, credentialsFile);
-        metaTable = new Table("#meta", Arrays.asList("key", "value"), spreadsheetHandler).create();
+
+        createTableRequest("#meta", Arrays.asList("key", "value")).execute();
+        metaTable = getTable("#meta");
     }
 
     public static String getApplicationName() {
@@ -69,39 +71,41 @@ public class SpreadsheetDatabase {
         return tables.get(tableName);
     }
 
-    public SpreadsheetDatabase createTable(String tableName, List<Object> columns) throws IOException {
-        for (Table.Record row : metaTable.selectAll()) {
-            // If exists...
-            if (row.get(META_TABLE_COLUMN_NAME).equals(tableName)) {
-                Table table = new Table(tableName, columns, spreadsheetHandler,
-                        Integer.parseInt(row.get(META_TABLE_COLUMN_LAST_ROW_NUM).toString()));
-
-                synchronized (LOCK_OBJECT) {
-                    tables.put(tableName, table);
-                }
-
-                return this;
-            }
-        }
-
-        Table table = new Table(tableName, columns, spreadsheetHandler).create();
+    public CreateTableRequest createTableRequest(String tableName, List<Object> columns) {
+        Table table = new Table(tableName, columns);
 
         synchronized (LOCK_OBJECT) {
             tables.put(tableName, table);
         }
 
-        return this;
+        return new CreateTableRequest(tableName, columns, spreadsheetHandler);
     }
 
-    public SpreadsheetDatabase dropTable(String tableName) throws IOException {
-        synchronized (LOCK_OBJECT) {
-            Table table = tables.remove(tableName);
+    public DropTableRequest dropTableRequest(String tableName) {
+        return new DropTableRequest(tableName, spreadsheetHandler, new DropTableRequest.Callback() {
 
-            if (table != null) {
-                table.drop();
+            @Override
+            public void onExecuted() {
+                synchronized (LOCK_OBJECT) {
+                    tables.remove(tableName);
+                }
             }
-        }
+        });
+    }
 
-        return this;
+    public QueryRequest queryRequest(String tableName) {
+        return new QueryRequest(getTable(tableName), spreadsheetHandler);
+    }
+
+    public BatchUpdateRequest updateRequest(String tableName) {
+        return new BatchUpdateRequest(getTable(tableName), spreadsheetHandler);
+    }
+
+    public BatchDeleteRequest deleteRequest(String tableName) {
+        return new BatchDeleteRequest(getTable(tableName), spreadsheetHandler);
+    }
+
+    public TruncateRequest truncateRequest(String tableName) {
+        return new TruncateRequest(getTable(tableName), spreadsheetHandler);
     }
 }
