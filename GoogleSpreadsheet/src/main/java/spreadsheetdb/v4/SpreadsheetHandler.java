@@ -32,6 +32,15 @@ class SpreadsheetHandler {
         String USER_ENTERED = "USER_ENTERED";
     }
 
+    /**
+     * @see "https://developers.google.com/sheets/api/reference/rest/v4/Dimension"
+     */
+    public interface Dimension {
+
+        String ROWS = "ROWS";
+        String COLUMNS = "COLUMNS";
+    }
+
     private static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance();
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
 

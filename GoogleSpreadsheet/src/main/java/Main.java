@@ -55,8 +55,7 @@ public class Main {
 
         // Delete
         db.deleteRequest("member")
-                .delete(records.get(1))
-                .delete(records.get(3))
+                .setRecords(Arrays.asList(records.get(1), records.get(3)))
                 .execute();
 
         // Truncate
