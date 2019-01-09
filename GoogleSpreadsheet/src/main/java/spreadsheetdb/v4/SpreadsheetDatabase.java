@@ -54,9 +54,16 @@ public class SpreadsheetDatabase {
                                 InputStream credentialsFile) throws GeneralSecurityException, IOException {
 
         spreadsheetHandler = new SpreadsheetHandler(spreadsheetId, applicationName, databaseName, credentialsFile);
+        metaTable = new Table("#meta", Arrays.asList("key", "value"));
 
-        createTableRequest("#meta", Arrays.asList("key", "value")).execute();
-        metaTable = getTable("#meta");
+        if (spreadsheetHandler.getSheetId(metaTable.getName()) == null) {
+            // Rename Sheet1's title.
+            new ChangeTableRequest(spreadsheetHandler).changeTableName(metaTable.getName()).execute();
+            // TODO: If Sheet1 is deleted
+            // Create the meta table if it does not exist.
+//            new CreateTableRequest(metaTable.getName(), metaTable.getColumns(), spreadsheetHandler).execute();
+            // TODO: Put meta data
+        }
     }
 
     public static String getApplicationName() {
