@@ -14,13 +14,12 @@ public class SpreadsheetDatabase {
     }
 
     private static final Object LOCK_OBJECT = new Object();
-
-    private static String applicationName;
-    private static CredentialsProvider credentialsProvider;
-    private static HashMap<String, Table> tables = new HashMap<>();
+    private static final HashMap<String, SpreadsheetDatabase> spreadsheetDatabases = new HashMap<>();
 
     private SpreadsheetHandler spreadsheetHandler;
+    private final CredentialsProvider credentialsProvider;
     private final Metadata metadata;
+    private final HashMap<String, Table> tables = new HashMap<>();
 
     private final CreateTableRequest.Callback createTableRequestCallback = new CreateTableRequest.Callback() {
 
@@ -34,38 +33,73 @@ public class SpreadsheetDatabase {
         }
     };
 
-    public static void init(String applicationName, CredentialsProvider credentialsProvider) {
-        SpreadsheetDatabase.applicationName = applicationName;
-        SpreadsheetDatabase.credentialsProvider = credentialsProvider;
+    public static SpreadsheetDatabase newPersonalDatabase(String applicationName,
+                                                          CredentialsProvider credentialsProvider) throws GeneralSecurityException, IOException {
+
+        return newPersonalDatabase(applicationName, applicationName, credentialsProvider);
     }
 
-    public static SpreadsheetDatabase newPersonalDatabase() throws GeneralSecurityException, IOException {
-        return newPersonalDatabase(applicationName);
+    public static SpreadsheetDatabase newPersonalDatabase(String applicationName,
+                                                          String databaseName,
+                                                          CredentialsProvider credentialsProvider) throws GeneralSecurityException, IOException {
+
+        SpreadsheetDatabase db;
+
+        if (spreadsheetDatabases.containsKey(databaseName)) {
+            db = spreadsheetDatabases.get(databaseName);
+        } else {
+            db = new SpreadsheetDatabase(true, null, applicationName, databaseName, credentialsProvider);
+            synchronized (LOCK_OBJECT) {
+                spreadsheetDatabases.put(databaseName, db);
+            }
+        }
+
+        return db;
     }
 
-    public static SpreadsheetDatabase newPersonalDatabase(String databaseName) throws GeneralSecurityException, IOException {
-        return new SpreadsheetDatabase(true, null, databaseName);
+    public static SpreadsheetDatabase getPersonalDatabase(String spreadsheetId,
+                                                          String applicationName,
+                                                          CredentialsProvider credentialsProvider) throws GeneralSecurityException, IOException {
+
+        return getPersonalDatabase(spreadsheetId, applicationName, applicationName, credentialsProvider);
     }
 
-    public static SpreadsheetDatabase getPersonalDatabase(String spreadsheetId) throws GeneralSecurityException, IOException {
-        return getPersonalDatabase(spreadsheetId, applicationName);
+    public static SpreadsheetDatabase getPersonalDatabase(String spreadsheetId,
+                                                          String applicationName,
+                                                          String databaseName,
+                                                          CredentialsProvider credentialsProvider) throws GeneralSecurityException, IOException {
+
+        SpreadsheetDatabase db;
+
+        if (spreadsheetDatabases.containsKey(databaseName)) {
+            db = spreadsheetDatabases.get(databaseName);
+        } else {
+            db = new SpreadsheetDatabase(false, spreadsheetId, applicationName, databaseName, credentialsProvider);
+            synchronized (LOCK_OBJECT) {
+                spreadsheetDatabases.put(databaseName, db);
+            }
+        }
+
+        return db;
     }
 
-    public static SpreadsheetDatabase getPersonalDatabase(String spreadsheetId, String databaseName) throws GeneralSecurityException, IOException {
-        return new SpreadsheetDatabase(false, spreadsheetId, databaseName);
-    }
+    private SpreadsheetDatabase(boolean createDb,
+                                String spreadsheetId,
+                                String applicationName,
+                                String databaseName,
+                                CredentialsProvider credentialsProvider) throws GeneralSecurityException, IOException {
 
-    private SpreadsheetDatabase(boolean createDb, String spreadsheetId, String databaseName) throws GeneralSecurityException, IOException {
+        this.credentialsProvider = credentialsProvider;
         spreadsheetHandler = new SpreadsheetHandler(spreadsheetId, applicationName, databaseName, credentialsProvider.getCredentials());
         metadata = Metadata.newInstance(createDb, applicationName, spreadsheetHandler, createTableRequestCallback);
     }
 
-    public static String getApplicationName() {
-        return applicationName;
-    }
-
     public String getSpreadsheetId() {
         return spreadsheetHandler.getSpreadsheetId();
+    }
+
+    public String getDatabaseName() {
+        return spreadsheetHandler.getSpreadsheetTitle();
     }
 
     public Metadata getMetadata() {
@@ -78,10 +112,7 @@ public class SpreadsheetDatabase {
 
     public CreateTableRequest createTableRequest(String tableName, List<Object> columns) {
         Table table = new Table(tableName, columns);
-
-        synchronized (LOCK_OBJECT) {
-            tables.put(tableName, table);
-        }
+        tables.put(tableName, table);
 
         return new CreateTableRequest(tableName, columns, spreadsheetHandler, createTableRequestCallback);
     }
@@ -91,9 +122,7 @@ public class SpreadsheetDatabase {
 
             @Override
             public void onExecuted() {
-                synchronized (LOCK_OBJECT) {
-                    tables.remove(tableName);
-                }
+                tables.remove(tableName);
             }
         });
     }

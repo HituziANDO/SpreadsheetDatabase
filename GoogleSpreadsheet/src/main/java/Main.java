@@ -23,10 +23,8 @@ public class Main {
     };
 
     public static void main(String... args) throws GeneralSecurityException, IOException {
-        SpreadsheetDatabase.init(APPLICATION_NAME, CREDENTIALS_PROVIDER);
-
-        SpreadsheetDatabase db = SpreadsheetDatabase.newPersonalDatabase();
-//        SpreadsheetDatabase db = SpreadsheetDatabase.getPersonalDatabase("Your Spreadsheet ID");
+        SpreadsheetDatabase db = SpreadsheetDatabase.newPersonalDatabase(APPLICATION_NAME, CREDENTIALS_PROVIDER);
+//        SpreadsheetDatabase db = SpreadsheetDatabase.getPersonalDatabase("Your Spreadsheet ID", APPLICATION_NAME, CREDENTIALS_PROVIDER);
 
         System.out.println("Spreadsheet ID: " + db.getSpreadsheetId());
         System.out.println(db.getMetadata().getDescription());
