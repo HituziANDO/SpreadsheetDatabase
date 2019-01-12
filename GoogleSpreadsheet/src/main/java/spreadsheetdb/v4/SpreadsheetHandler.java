@@ -52,6 +52,7 @@ class SpreadsheetHandler {
 
     private final Sheets service;
     private final Spreadsheet spreadsheet;
+    private final String spreadsheetTitle;
 
     public SpreadsheetHandler(String spreadsheetId,
                               String applicationName,
@@ -82,6 +83,14 @@ class SpreadsheetHandler {
         }
 
         this.spreadsheet = spreadsheet;
+        this.spreadsheetTitle = spreadsheetTitle;
+    }
+
+    public SpreadsheetHandler(SpreadsheetHandler spreadsheetHandler, InputStream credentialsFile) throws GeneralSecurityException, IOException {
+        this(spreadsheetHandler.getSpreadsheetId(),
+                spreadsheetHandler.getService().getApplicationName(),
+                spreadsheetHandler.getSpreadsheetTitle(),
+                credentialsFile);
     }
 
     public Sheets getService() {
@@ -90,6 +99,10 @@ class SpreadsheetHandler {
 
     public String getSpreadsheetId() {
         return spreadsheet.getSpreadsheetId();
+    }
+
+    public String getSpreadsheetTitle() {
+        return spreadsheetTitle;
     }
 
     public Integer getSheetId(String sheetTitle) {
@@ -108,6 +121,24 @@ class SpreadsheetHandler {
         }
 
         return null;
+    }
+
+    public boolean hasSheet(int sheetId) {
+        List<Sheet> sheets = spreadsheet.getSheets();
+
+        if (sheets == null) {
+            return false;
+        }
+
+        for (Sheet sheet : sheets) {
+            SheetProperties properties = sheet.getProperties();
+
+            if (properties != null && properties.getSheetId() == sheetId) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

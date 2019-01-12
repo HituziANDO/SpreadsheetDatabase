@@ -9,15 +9,22 @@ import java.util.List;
 
 public class CreateTableRequest {
 
+    interface Callback {
+
+        void onExecuted();
+    }
+
     private final String tableName;
     private final List<Object> columns;
     private final SpreadsheetHandler spreadsheetHandler;
+    private final Callback callback;
     private final ArrayList<Request> requests = new ArrayList<>();
 
-    CreateTableRequest(String tableName, List<Object> columns, SpreadsheetHandler spreadsheetHandler) {
+    CreateTableRequest(String tableName, List<Object> columns, SpreadsheetHandler spreadsheetHandler, Callback callback) {
         this.tableName = tableName;
         this.columns = columns;
         this.spreadsheetHandler = spreadsheetHandler;
+        this.callback = callback;
 
         if (spreadsheetHandler.getSheetId(tableName) == null) {
             requests.add(new Request()
@@ -52,6 +59,8 @@ public class CreateTableRequest {
                 .setValueInputOption(SpreadsheetHandler.ValueInputOption.RAW)
                 .execute();
 
-        // TODO: serviceを再生成しないとspreadsheets()に追加分が更新されない(?)
+        if (callback != null) {
+            callback.onExecuted();
+        }
     }
 }

@@ -12,7 +12,7 @@ public class ChangeTableRequest {
     private final ArrayList<Request> requests = new ArrayList<>();
 
     ChangeTableRequest(SpreadsheetHandler spreadsheetHandler) {
-        // The target sheet is Sheet1 initial created.
+        // The target sheet is Sheet1(sheetId=0) initial created.
         this(null, spreadsheetHandler);
     }
 
@@ -30,7 +30,7 @@ public class ChangeTableRequest {
         SheetProperties sheetProperties = new SheetProperties()
                 .setTitle(newName);
 
-        // When sheetId is not set, Sheet1 initial created is default.
+        // When sheetId is not set, Sheet1(sheetId=0) initial created is default.
         if (table != null) {
             Integer sheetId = spreadsheetHandler.getSheetId(table.getName());
 

@@ -3,6 +3,7 @@ import spreadsheetdb.v4.SpreadsheetDatabase;
 import spreadsheetdb.v4.Table;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.List;
@@ -12,12 +13,19 @@ public class Main {
     private static final String APPLICATION_NAME = "GoogleSpreadsheetDB";
     private static final String CREDENTIALS_FILE_PATH = "/credentials.json";
 
-    public static void main(String... args) throws GeneralSecurityException, IOException {
-        SpreadsheetDatabase.init(APPLICATION_NAME);
+    private static final SpreadsheetDatabase.CredentialsProvider CREDENTIALS_PROVIDER = new SpreadsheetDatabase.CredentialsProvider() {
 
-        SpreadsheetDatabase db = SpreadsheetDatabase.newPersonalDatabase(Main.class.getResourceAsStream(CREDENTIALS_FILE_PATH));
-//        SpreadsheetDatabase db = SpreadsheetDatabase.getPersonalDatabase("Your Spreadsheet ID",
-//                Main.class.getResourceAsStream(CREDENTIALS_FILE_PATH));
+        @Override
+        public InputStream getCredentials() {
+            return Main.class.getResourceAsStream(CREDENTIALS_FILE_PATH);
+        }
+    };
+
+    public static void main(String... args) throws GeneralSecurityException, IOException {
+        SpreadsheetDatabase.init(APPLICATION_NAME, CREDENTIALS_PROVIDER);
+
+        SpreadsheetDatabase db = SpreadsheetDatabase.newPersonalDatabase();
+//        SpreadsheetDatabase db = SpreadsheetDatabase.getPersonalDatabase("Your Spreadsheet ID");
 
         System.out.println("Spreadsheet ID: " + db.getSpreadsheetId());
 

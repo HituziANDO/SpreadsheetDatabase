@@ -9,59 +9,70 @@ import java.util.List;
 
 public class SpreadsheetDatabase {
 
+    public interface CredentialsProvider {
+
+        InputStream getCredentials();
+    }
+
     private static final int META_TABLE_COLUMN_NAME = 1;
     private static final int META_TABLE_COLUMN_LAST_ROW_NUM = 2;
     private static final Object LOCK_OBJECT = new Object();
 
     private static String applicationName;
+    private static CredentialsProvider credentialsProvider;
     private static HashMap<String, Table> tables = new HashMap<>();
 
-    private final SpreadsheetHandler spreadsheetHandler;
+    private SpreadsheetHandler spreadsheetHandler;
     private final Table metaTable;
 
-    public static void init(String applicationName) {
-        if (SpreadsheetDatabase.applicationName == null) {
-            SpreadsheetDatabase.applicationName = applicationName;
+    private final CreateTableRequest.Callback createTableRequestCallback = new CreateTableRequest.Callback() {
+
+        @Override
+        public void onExecuted() {
+            try {
+                spreadsheetHandler = new SpreadsheetHandler(spreadsheetHandler, credentialsProvider.getCredentials());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
+    };
+
+    public static void init(String applicationName, CredentialsProvider credentialsProvider) {
+        SpreadsheetDatabase.applicationName = applicationName;
+        SpreadsheetDatabase.credentialsProvider = credentialsProvider;
     }
 
-    public static SpreadsheetDatabase newPersonalDatabase(InputStream credentialsFile) throws GeneralSecurityException, IOException {
-
-        return newPersonalDatabase(applicationName, credentialsFile);
+    public static SpreadsheetDatabase newPersonalDatabase() throws GeneralSecurityException, IOException {
+        return newPersonalDatabase(applicationName);
     }
 
-    public static SpreadsheetDatabase newPersonalDatabase(String databaseName,
-                                                          InputStream credentialsFile) throws GeneralSecurityException, IOException {
-
-        return new SpreadsheetDatabase(null, databaseName, credentialsFile);
+    public static SpreadsheetDatabase newPersonalDatabase(String databaseName) throws GeneralSecurityException, IOException {
+        return new SpreadsheetDatabase(true, null, databaseName);
     }
 
-    public static SpreadsheetDatabase getPersonalDatabase(String spreadsheetId,
-                                                          InputStream credentialsFile) throws GeneralSecurityException, IOException {
-
-        return getPersonalDatabase(spreadsheetId, applicationName, credentialsFile);
+    public static SpreadsheetDatabase getPersonalDatabase(String spreadsheetId) throws GeneralSecurityException, IOException {
+        return getPersonalDatabase(spreadsheetId, applicationName);
     }
 
-    public static SpreadsheetDatabase getPersonalDatabase(String spreadsheetId,
-                                                          String databaseName,
-                                                          InputStream credentialsFile) throws GeneralSecurityException, IOException {
-
-        return new SpreadsheetDatabase(spreadsheetId, databaseName, credentialsFile);
+    public static SpreadsheetDatabase getPersonalDatabase(String spreadsheetId, String databaseName) throws GeneralSecurityException, IOException {
+        return new SpreadsheetDatabase(false, spreadsheetId, databaseName);
     }
 
-    private SpreadsheetDatabase(String spreadsheetId,
-                                String databaseName,
-                                InputStream credentialsFile) throws GeneralSecurityException, IOException {
-
-        spreadsheetHandler = new SpreadsheetHandler(spreadsheetId, applicationName, databaseName, credentialsFile);
+    private SpreadsheetDatabase(boolean createDb, String spreadsheetId, String databaseName) throws GeneralSecurityException, IOException {
+        spreadsheetHandler = new SpreadsheetHandler(spreadsheetId, applicationName, databaseName, credentialsProvider.getCredentials());
         metaTable = new Table("#meta", Arrays.asList("key", "value"));
 
         if (spreadsheetHandler.getSheetId(metaTable.getName()) == null) {
-            // Rename Sheet1's title.
-            new ChangeTableRequest(spreadsheetHandler).changeTableName(metaTable.getName()).execute();
-            // TODO: If Sheet1 is deleted
-            // Create the meta table if it does not exist.
-//            new CreateTableRequest(metaTable.getName(), metaTable.getColumns(), spreadsheetHandler).execute();
+            // If the meta table is not found, renames Sheet1's title.
+            if (!createDb || !spreadsheetHandler.hasSheet(0)) {
+                new ChangeTableRequest(spreadsheetHandler).changeTableName(metaTable.getName())
+                        .execute();
+            } else {
+                // If default sheet is deleted, creates new sheet for the meta table.
+                new CreateTableRequest(metaTable.getName(), metaTable.getColumns(), spreadsheetHandler, createTableRequestCallback)
+                        .execute();
+            }
+
             // TODO: Put meta data
         }
     }
@@ -85,7 +96,7 @@ public class SpreadsheetDatabase {
             tables.put(tableName, table);
         }
 
-        return new CreateTableRequest(tableName, columns, spreadsheetHandler);
+        return new CreateTableRequest(tableName, columns, spreadsheetHandler, createTableRequestCallback);
     }
 
     public DropTableRequest dropTableRequest(String tableName) {
