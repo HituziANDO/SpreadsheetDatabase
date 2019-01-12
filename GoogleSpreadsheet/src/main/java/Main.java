@@ -1,3 +1,4 @@
+import spreadsheetdb.v4.Metadata;
 import spreadsheetdb.v4.Record;
 import spreadsheetdb.v4.SpreadsheetDatabase;
 import spreadsheetdb.v4.Table;
@@ -28,6 +29,11 @@ public class Main {
 //        SpreadsheetDatabase db = SpreadsheetDatabase.getPersonalDatabase("Your Spreadsheet ID");
 
         System.out.println("Spreadsheet ID: " + db.getSpreadsheetId());
+        System.out.println(db.getMetadata().getDescription());
+
+        Metadata metadata = db.getMetadata();
+        metadata.setDescription("Spreadsheet Database is a simple database using Google Spreadsheet API.");
+        metadata.update();
 
         // TODO: Migration
 

@@ -51,7 +51,7 @@ public class Table {
     private final String name;
     private final List<Object> columns;
 
-    public Table(String name, List<Object> columns) {
+    Table(String name, List<Object> columns) {
         this.name = name;
         this.columns = columns;
     }

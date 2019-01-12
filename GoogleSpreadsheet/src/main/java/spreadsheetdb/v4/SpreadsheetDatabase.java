@@ -3,7 +3,6 @@ package spreadsheetdb.v4;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
@@ -14,8 +13,6 @@ public class SpreadsheetDatabase {
         InputStream getCredentials();
     }
 
-    private static final int META_TABLE_COLUMN_NAME = 1;
-    private static final int META_TABLE_COLUMN_LAST_ROW_NUM = 2;
     private static final Object LOCK_OBJECT = new Object();
 
     private static String applicationName;
@@ -23,7 +20,7 @@ public class SpreadsheetDatabase {
     private static HashMap<String, Table> tables = new HashMap<>();
 
     private SpreadsheetHandler spreadsheetHandler;
-    private final Table metaTable;
+    private final Metadata metadata;
 
     private final CreateTableRequest.Callback createTableRequestCallback = new CreateTableRequest.Callback() {
 
@@ -60,21 +57,7 @@ public class SpreadsheetDatabase {
 
     private SpreadsheetDatabase(boolean createDb, String spreadsheetId, String databaseName) throws GeneralSecurityException, IOException {
         spreadsheetHandler = new SpreadsheetHandler(spreadsheetId, applicationName, databaseName, credentialsProvider.getCredentials());
-        metaTable = new Table("#meta", Arrays.asList("key", "value"));
-
-        if (spreadsheetHandler.getSheetId(metaTable.getName()) == null) {
-            // If the meta table is not found, renames Sheet1's title.
-            if (!createDb || !spreadsheetHandler.hasSheet(0)) {
-                new ChangeTableRequest(spreadsheetHandler).changeTableName(metaTable.getName())
-                        .execute();
-            } else {
-                // If default sheet is deleted, creates new sheet for the meta table.
-                new CreateTableRequest(metaTable.getName(), metaTable.getColumns(), spreadsheetHandler, createTableRequestCallback)
-                        .execute();
-            }
-
-            // TODO: Put meta data
-        }
+        metadata = Metadata.newInstance(createDb, applicationName, spreadsheetHandler, createTableRequestCallback);
     }
 
     public static String getApplicationName() {
@@ -83,6 +66,10 @@ public class SpreadsheetDatabase {
 
     public String getSpreadsheetId() {
         return spreadsheetHandler.getSpreadsheetId();
+    }
+
+    public Metadata getMetadata() {
+        return metadata;
     }
 
     public Table getTable(String tableName) {

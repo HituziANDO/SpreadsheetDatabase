@@ -9,7 +9,7 @@ import java.util.List;
 public class BatchUpdateRequest {
 
     private final Table table;
-    private final int sheetId;
+    private final Integer sheetId;
     private final SpreadsheetHandler spreadsheetHandler;
     private final ArrayList<Request> requests = new ArrayList<>();
 
