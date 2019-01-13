@@ -5,6 +5,9 @@ import java.util.List;
 
 public class Record {
 
+    /**
+     * `rowIndex` >= 1
+     */
     private final int rowIndex;
     private List<Object> values;
 
@@ -39,6 +42,18 @@ public class Record {
 
     public int getInt(int columnIndex) {
         return Integer.parseInt(get(columnIndex).toString());
+    }
+
+    public long getLong(int columnIndex) {
+        return Long.parseLong(get(columnIndex).toString());
+    }
+
+    public float getFloat(int columnIndex) {
+        return Float.parseFloat(get(columnIndex).toString());
+    }
+
+    public double getDouble(int columnIndex) {
+        return Double.parseDouble(get(columnIndex).toString());
     }
 
     public String getString(int columnIndex) {
