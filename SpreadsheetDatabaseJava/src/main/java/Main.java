@@ -82,8 +82,9 @@ public class Main {
         db.dropTableRequest("class").execute();
 
         // Migrate
-        if (db.getMetadata().getSchemaVersion() < 2) {
-            db.migrateRequest("member", Arrays.asList("name", "country", "address1", "tel", "score"), 2).execute(new MigrateRequest.MigrationListener() {
+        int newSchemaVersion = 2;
+        if (db.getMetadata().getSchemaVersion() < newSchemaVersion) {
+            db.migrateRequest("member", Arrays.asList("name", "country", "address1", "tel", "score"), newSchemaVersion).execute(new MigrateRequest.MigrationListener() {
 
                 @Override
                 public List<Record> onMigrate(Table table, List<Object> newColumns, List<Record> oldRecords) {
