@@ -52,6 +52,15 @@ public class Metadata extends Table {
         this.spreadsheetHandler = spreadsheetHandler;
     }
 
+    Metadata(Metadata metadata) {
+        super(metadata.getName(), metadata.getColumns());
+
+        this.applicationName = metadata.applicationName;
+        this.spreadsheetHandler = metadata.spreadsheetHandler;
+        this.description = metadata.description;
+        this.schemaVersion = metadata.schemaVersion;
+    }
+
     public String getApplicationName() {
         return applicationName;
     }
@@ -73,11 +82,14 @@ public class Metadata extends Table {
     }
 
     public void update() throws IOException {
-        new BatchUpdateRequest(this, spreadsheetHandler)
+        updateRequest().execute();
+    }
+
+    BatchUpdateRequest updateRequest() {
+        return new BatchUpdateRequest(this, spreadsheetHandler)
                 .update(new Record(0, getColumns()))
                 .update(new Record(1, Arrays.asList("applicationName", applicationName)))
                 .update(new Record(2, Arrays.asList("description", description)))
-                .update(new Record(3, Arrays.asList("schemaVersion", schemaVersion)))
-                .execute();
+                .update(new Record(3, Arrays.asList("schemaVersion", schemaVersion)));
     }
 }

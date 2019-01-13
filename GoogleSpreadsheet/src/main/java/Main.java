@@ -1,7 +1,4 @@
-import spreadsheetdb.v4.Metadata;
-import spreadsheetdb.v4.Record;
-import spreadsheetdb.v4.SpreadsheetDatabase;
-import spreadsheetdb.v4.Table;
+import spreadsheetdb.v4.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,13 +24,12 @@ public class Main {
 //        SpreadsheetDatabase db = SpreadsheetDatabase.getPersonalDatabase("Your Spreadsheet ID", APPLICATION_NAME, CREDENTIALS_PROVIDER);
 
         System.out.println("Spreadsheet ID: " + db.getSpreadsheetId());
-        System.out.println(db.getMetadata().getDescription());
+        System.out.println("Description: " + db.getMetadata().getDescription());
+        System.out.println("Schema Version: " + db.getMetadata().getSchemaVersion());
 
         Metadata metadata = db.getMetadata();
         metadata.setDescription("Spreadsheet Database is a simple database using Google Spreadsheet API.");
         metadata.update();
-
-        // TODO: Migration
 
         // Create table if it not exists
         db.createTableRequest("member", Arrays.asList("name", "country", "address1", "tel")).execute();
@@ -84,5 +80,27 @@ public class Main {
 
         // Drop table
         db.dropTableRequest("class").execute();
+
+        // Migrate
+        if (db.getMetadata().getSchemaVersion() < 2) {
+            db.migrateRequest("member", Arrays.asList("name", "country", "address1", "tel", "score"), 2).execute(new MigrateRequest.MigrationListener() {
+
+                @Override
+                public List<Record> onMigrate(Table table, List<Object> newColumns, List<Record> oldRecords) {
+                    for (Record record : oldRecords) {
+                        record.setValues(Arrays.asList(
+                                record.getString(table.getColumnIndex("name")),
+                                record.getString(table.getColumnIndex("country")),
+                                record.getString(table.getColumnIndex("address1")),
+                                record.getInt(table.getColumnIndex("tel")),
+                                99.9    // Set default value
+                        ));
+                    }
+
+                    // Return new values
+                    return oldRecords;
+                }
+            });
+        }
     }
 }

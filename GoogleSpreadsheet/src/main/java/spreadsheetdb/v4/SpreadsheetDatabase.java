@@ -48,7 +48,7 @@ public class SpreadsheetDatabase {
         if (spreadsheetDatabases.containsKey(databaseName)) {
             db = spreadsheetDatabases.get(databaseName);
         } else {
-            db = new SpreadsheetDatabase(true, null, applicationName, databaseName, credentialsProvider);
+            db = new SpreadsheetDatabase(null, applicationName, databaseName, credentialsProvider);
             synchronized (LOCK_OBJECT) {
                 spreadsheetDatabases.put(databaseName, db);
             }
@@ -74,7 +74,7 @@ public class SpreadsheetDatabase {
         if (spreadsheetDatabases.containsKey(databaseName)) {
             db = spreadsheetDatabases.get(databaseName);
         } else {
-            db = new SpreadsheetDatabase(false, spreadsheetId, applicationName, databaseName, credentialsProvider);
+            db = new SpreadsheetDatabase(spreadsheetId, applicationName, databaseName, credentialsProvider);
             synchronized (LOCK_OBJECT) {
                 spreadsheetDatabases.put(databaseName, db);
             }
@@ -83,15 +83,14 @@ public class SpreadsheetDatabase {
         return db;
     }
 
-    private SpreadsheetDatabase(boolean createDb,
-                                String spreadsheetId,
+    private SpreadsheetDatabase(String spreadsheetId,
                                 String applicationName,
                                 String databaseName,
                                 CredentialsProvider credentialsProvider) throws GeneralSecurityException, IOException {
 
         this.credentialsProvider = credentialsProvider;
         spreadsheetHandler = new SpreadsheetHandler(spreadsheetId, applicationName, databaseName, credentialsProvider.getCredentials());
-        metadata = Metadata.newInstance(createDb, applicationName, spreadsheetHandler, createTableRequestCallback);
+        metadata = Metadata.newInstance(spreadsheetId == null, applicationName, spreadsheetHandler, createTableRequestCallback);
     }
 
     public String getSpreadsheetId() {
@@ -141,5 +140,21 @@ public class SpreadsheetDatabase {
 
     public TruncateRequest truncateRequest(String tableName) {
         return new TruncateRequest(getTable(tableName), spreadsheetHandler);
+    }
+
+    public MigrateRequest migrateRequest(String tableName, List<Object> newColumns, int newSchemaVersion) {
+        Metadata newMetadata = new Metadata(metadata);
+        newMetadata.setSchemaVersion(newSchemaVersion);
+
+        return new MigrateRequest(newMetadata.updateRequest(), getTable(tableName), newColumns, spreadsheetHandler, new MigrateRequest.Callback() {
+
+            @Override
+            public void onExecuted() {
+                metadata.setSchemaVersion(newSchemaVersion);
+
+                Table table = new Table(tableName, newColumns);
+                tables.put(tableName, table);
+            }
+        });
     }
 }

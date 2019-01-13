@@ -8,10 +8,10 @@ import java.util.List;
 
 public class BatchUpdateRequest {
 
-    private final Table table;
-    private final Integer sheetId;
-    private final SpreadsheetHandler spreadsheetHandler;
-    private final ArrayList<Request> requests = new ArrayList<>();
+    final Table table;
+    final Integer sheetId;
+    final SpreadsheetHandler spreadsheetHandler;
+    final ArrayList<Request> requests = new ArrayList<>();
 
     BatchUpdateRequest(Table table, SpreadsheetHandler spreadsheetHandler) {
         this.table = table;
@@ -35,7 +35,7 @@ public class BatchUpdateRequest {
                 .setStartRowIndex(record.getRowIndex())
                 .setEndRowIndex(record.getRowIndex() + 1)
                 .setStartColumnIndex(0)
-                .setEndColumnIndex(table.getColumns().size());
+                .setEndColumnIndex(getColumns().size());
 
         requests.add(new Request()
                 .setUpdateCells(new UpdateCellsRequest()
@@ -56,7 +56,11 @@ public class BatchUpdateRequest {
                 .execute();
     }
 
-    private List<RowData> convertToSingleRowData(List<Object> values) {
+    List<Object> getColumns() {
+        return table.getColumns();
+    }
+
+    List<RowData> convertToSingleRowData(List<Object> values) {
         ArrayList<CellData> cellDataList = new ArrayList<>();
 
         for (Object value : values) {
